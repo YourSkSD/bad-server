@@ -13,7 +13,9 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
     let payload: JwtPayload | null = null
     const authHeader = req.header('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
-        throw new UnauthorizedError('Невалидный токен')
+        // Важно: throw из async-middleware в Express 4 не перехватывается и
+        // роняет процесс (DoS). Передаём ошибку через next().
+        return next(new UnauthorizedError('Невалидный токен'))
     }
     try {
         const accessTokenParts = authHeader.split(' ')

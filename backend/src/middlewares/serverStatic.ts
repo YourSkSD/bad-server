@@ -3,20 +3,40 @@ import fs from 'fs'
 import path from 'path'
 
 export default function serveStatic(baseDir: string) {
-    return (req: Request, res: Response, next: NextFunction) => {
-        // Определяем полный путь к запрашиваемому файлу
-        const filePath = path.join(baseDir, req.path)
+    const resolvedBase = path.resolve(baseDir)
 
-        // Проверяем, существует ли файл
-        fs.access(filePath, fs.constants.F_OK, (err) => {
-            if (err) {
-                // Файл не существует отдаем дальше мидлварам
+    return (req: Request, res: Response, next: NextFunction) => {
+        // Декодируем путь; на битом URL-кодировании считаем, что файла нет
+        let decodedPath: string
+        try {
+            decodedPath = decodeURIComponent(req.path)
+        } catch {
+            return next()
+        }
+
+        // Нормализуем и строим абсолютный путь к запрошенному файлу
+        const normalizedPath = path.normalize(decodedPath)
+        const resolvedPath = path.resolve(
+            resolvedBase,
+            `.${path.sep}${normalizedPath}`
+        )
+
+        // Защита от обхода директорий: путь обязан лежать внутри baseDir
+        if (
+            resolvedPath !== resolvedBase &&
+            !resolvedPath.startsWith(resolvedBase + path.sep)
+        ) {
+            return next()
+        }
+
+        // Отдаём только существующие обычные файлы (не каталоги)
+        return fs.stat(resolvedPath, (statErr, stats) => {
+            if (statErr || !stats.isFile()) {
                 return next()
             }
-            // Файл существует, отправляем его клиенту
-            return res.sendFile(filePath, (err) => {
-                if (err) {
-                    next(err)
+            return res.sendFile(resolvedPath, (sendErr) => {
+                if (sendErr) {
+                    next(sendErr)
                 }
             })
         })

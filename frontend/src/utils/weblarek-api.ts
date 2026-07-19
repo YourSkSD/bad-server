@@ -65,6 +65,22 @@ class Api {
         }
     }
 
+    private csrfToken: string | null = null
+
+    // Получаем CSRF-токен (и куку) для защиты форм входа/регистрации
+    protected getCsrfToken = async (): Promise<string> => {
+        if (this.csrfToken) {
+            return this.csrfToken
+        }
+        const res = await fetch(`${this.baseUrl}/auth/csrf-token`, {
+            method: 'GET',
+            credentials: 'include',
+        })
+        const data = (await res.json()) as { csrfToken: string }
+        this.csrfToken = data.csrfToken
+        return data.csrfToken
+    }
+
     private refreshToken = () => {
         return this.request<UserResponseToken>('/auth/token', {
             method: 'GET',
@@ -226,23 +242,27 @@ export class WebLarekAPI extends Api implements IWebLarekAPI {
         )
     }
 
-    loginUser = (data: UserLoginBodyDto) => {
+    loginUser = async (data: UserLoginBodyDto) => {
+        const csrfToken = await this.getCsrfToken()
         return this.request<UserResponseToken>('/auth/login', {
             method: 'POST',
             body: JSON.stringify(data),
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
             },
             credentials: 'include',
         })
     }
 
-    registerUser = (data: UserRegisterBodyDto) => {
+    registerUser = async (data: UserRegisterBodyDto) => {
+        const csrfToken = await this.getCsrfToken()
         return this.request<UserResponseToken>('/auth/register', {
             method: 'POST',
             body: JSON.stringify(data),
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
             },
             credentials: 'include',
         })
