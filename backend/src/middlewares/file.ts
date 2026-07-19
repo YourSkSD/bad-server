@@ -59,4 +59,9 @@ const fileFilter = (
     return cb(null, true)
 }
 
-export default multer({ storage, fileFilter })
+export default multer({
+    storage,
+    fileFilter,
+    // Ограничиваем размер (10 МБ) и количество файлов за запрос
+    limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+})
