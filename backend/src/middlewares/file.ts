@@ -7,13 +7,13 @@ import { join } from 'path'
 type DestinationCallback = (error: Error | null, destination: string) => void
 type FileNameCallback = (error: Error | null, filename: string) => void
 
-// Расширение берём из белого списка mime-типов, а не из имени файла пользователя
+// Расширение берём из белого списка mime-типов, а не из имени файла пользователя.
+// SVG намеренно исключён: он может содержать JS и приводить к stored-XSS при раздаче.
 const extByMime: Record<string, string> = {
     'image/png': '.png',
     'image/jpg': '.jpg',
     'image/jpeg': '.jpg',
     'image/gif': '.gif',
-    'image/svg+xml': '.svg',
 }
 
 const storage = multer.diskStorage({
@@ -45,13 +45,7 @@ const storage = multer.diskStorage({
     },
 })
 
-const types = [
-    'image/png',
-    'image/jpg',
-    'image/jpeg',
-    'image/gif',
-    'image/svg+xml',
-]
+const types = ['image/png', 'image/jpg', 'image/jpeg', 'image/gif']
 
 const fileFilter = (
     _req: Request,
