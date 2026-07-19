@@ -2,7 +2,8 @@ import crypto from 'crypto'
 import { NextFunction, Request, Response } from 'express'
 import ForbiddenError from '../errors/forbidden-error'
 
-export const CSRF_COOKIE = 'csrfToken'
+// Имя куки '_csrf' — стандартное для double-submit и ожидается тестами
+export const CSRF_COOKIE = '_csrf'
 export const CSRF_HEADER = 'x-csrf-token'
 
 // Кука с CSRF-токеном должна быть читаемой из JS (double-submit),
