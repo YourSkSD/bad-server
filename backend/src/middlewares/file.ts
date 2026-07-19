@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { Request, Express } from 'express'
 import multer, { FileFilterCallback } from 'multer'
 import { mkdirSync } from 'fs'
@@ -5,6 +6,15 @@ import { join } from 'path'
 
 type DestinationCallback = (error: Error | null, destination: string) => void
 type FileNameCallback = (error: Error | null, filename: string) => void
+
+// Расширение берём из белого списка mime-типов, а не из имени файла пользователя
+const extByMime: Record<string, string> = {
+    'image/png': '.png',
+    'image/jpg': '.jpg',
+    'image/jpeg': '.jpg',
+    'image/gif': '.gif',
+    'image/svg+xml': '.svg',
+}
 
 const storage = multer.diskStorage({
     destination: (
@@ -29,7 +39,9 @@ const storage = multer.diskStorage({
         file: Express.Multer.File,
         cb: FileNameCallback
     ) => {
-        cb(null, file.originalname)
+        // Генерируем безопасное уникальное имя, игнорируя originalname пользователя
+        const ext = extByMime[file.mimetype] ?? ''
+        cb(null, `${randomUUID()}${ext}`)
     },
 })
 
