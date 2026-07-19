@@ -192,8 +192,15 @@ const updateCurrentUser = async (
 ) => {
     const userId = res.locals.user._id
     try {
-        const updatedUser = await User.findByIdAndUpdate(userId, req.body, {
+        // Whitelist полей: пользователь не может менять roles/password/tokens
+        const { name, phone } = req.body
+        const update: { name?: string; phone?: string } = {}
+        if (name !== undefined) update.name = name
+        if (phone !== undefined) update.phone = phone
+
+        const updatedUser = await User.findByIdAndUpdate(userId, update, {
             new: true,
+            runValidators: true,
         }).orFail(
             () =>
                 new NotFoundError(

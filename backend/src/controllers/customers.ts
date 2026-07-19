@@ -183,11 +183,19 @@ export const updateCustomer = async (
     next: NextFunction
 ) => {
     try {
+        // Whitelist полей: не даём менять password/tokens/roles через это API
+        const { name, email, phone } = req.body
+        const update: { name?: string; email?: string; phone?: string } = {}
+        if (name !== undefined) update.name = name
+        if (email !== undefined) update.email = email
+        if (phone !== undefined) update.phone = phone
+
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            update,
             {
                 new: true,
+                runValidators: true,
             }
         )
             .orFail(
