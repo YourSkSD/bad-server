@@ -3,6 +3,8 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import 'dotenv/config'
 import express, { json, urlencoded } from 'express'
+import rateLimit from 'express-rate-limit'
+import helmet from 'helmet'
 import mongoose from 'mongoose'
 import path from 'path'
 import { DB_ADDRESS } from './config'
@@ -13,6 +15,13 @@ import routes from './routes'
 const { PORT = 3000 } = process.env
 const app = express()
 
+// За nginx: доверяем первому прокси, чтобы rate-limit видел реальный IP клиента
+app.set('trust proxy', 1)
+
+// Защитные HTTP-заголовки и удаление X-Powered-By.
+// crossOriginResourcePolicy ослаблен, чтобы не ломать раздачу картинок.
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
+
 app.use(cookieParser())
 
 app.use(cors())
@@ -20,6 +29,16 @@ app.use(cors())
 // app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(serveStatic(path.join(__dirname, 'public')))
+
+// Ограничение частоты запросов к API (защита от флуда/DDoS).
+// Лимит с запасом над требуемым минимумом (10/мин).
+const limiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+})
+app.use(limiter)
 
 // Ограничиваем размер тела запроса, чтобы исключить переполнение памяти
 app.use(urlencoded({ extended: true, limit: '10kb' }))
