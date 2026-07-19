@@ -31,10 +31,11 @@ app.use(cors(corsOptions))
 app.use(serveStatic(path.join(__dirname, 'public')))
 
 // Ограничение частоты запросов к API (защита от флуда/DDoS).
-// Лимит с запасом над требуемым минимумом (10/мин).
+// Короткое окно: всплеск одновременных запросов режется, обычная
+// последовательная работа приложения под лимит не попадает.
 const limiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 100,
+    windowMs: 1000,
+    max: 20,
     standardHeaders: true,
     legacyHeaders: false,
 })

@@ -30,15 +30,28 @@ export const getOrders = async (
             search,
         } = req.query
 
+        // Зажимаем пагинацию: максимум 10 элементов на страницу
+        const normalizedLimit = Math.min(
+            Math.max(Math.trunc(Number(limit)) || 10, 1),
+            10
+        )
+        const normalizedPage = Math.max(Math.trunc(Number(page)) || 1, 1)
+
         const filters: FilterQuery<Partial<IOrder>> = {}
 
-        // Принимаем status только как строку из белого списка статусов.
-        // Объекты игнорируем, чтобы исключить NoSQL-инъекцию операторов Mongo.
-        if (
-            typeof status === 'string' &&
-            (Object.values(StatusType) as string[]).includes(status)
-        ) {
-            filters.status = status
+        // status принимаем только как валидную строку из белого списка.
+        // Любой объект (попытка NoSQL-инъекции операторов Mongo) отклоняем.
+        if (status !== undefined) {
+            if (
+                typeof status === 'string' &&
+                (Object.values(StatusType) as string[]).includes(status)
+            ) {
+                filters.status = status
+            } else {
+                return next(
+                    new BadRequestError('Некорректный статус заказа')
+                )
+            }
         }
 
         if (totalAmountFrom) {
@@ -121,8 +134,8 @@ export const getOrders = async (
 
         aggregatePipeline.push(
             { $sort: sort },
-            { $skip: (Number(page) - 1) * Number(limit) },
-            { $limit: Number(limit) },
+            { $skip: (normalizedPage - 1) * normalizedLimit },
+            { $limit: normalizedLimit },
             {
                 $group: {
                     _id: '$_id',
@@ -139,15 +152,15 @@ export const getOrders = async (
 
         const orders = await Order.aggregate(aggregatePipeline)
         const totalOrders = await Order.countDocuments(filters)
-        const totalPages = Math.ceil(totalOrders / Number(limit))
+        const totalPages = Math.ceil(totalOrders / normalizedLimit)
 
         res.status(200).json({
             orders,
             pagination: {
                 totalOrders,
                 totalPages,
-                currentPage: Number(page),
-                pageSize: Number(limit),
+                currentPage: normalizedPage,
+                pageSize: normalizedLimit,
             },
         })
     } catch (error) {
