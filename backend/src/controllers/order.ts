@@ -132,6 +132,7 @@ export const getOrders = async (
                     products: { $push: '$products' },
                     customer: { $first: '$customer' },
                     createdAt: { $first: '$createdAt' },
+                    comment: { $first: '$comment' },
                 },
             }
         )
