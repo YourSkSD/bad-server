@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express'
 import { FilterQuery, Error as MongooseError, Types } from 'mongoose'
 import BadRequestError from '../errors/bad-request-error'
 import NotFoundError from '../errors/not-found-error'
-import Order, { IOrder } from '../models/order'
+import Order, { IOrder, StatusType } from '../models/order'
 import Product, { IProduct } from '../models/product'
 import User from '../models/user'
 
@@ -30,13 +30,13 @@ export const getOrders = async (
 
         const filters: FilterQuery<Partial<IOrder>> = {}
 
-        if (status) {
-            if (typeof status === 'object') {
-                Object.assign(filters, status)
-            }
-            if (typeof status === 'string') {
-                filters.status = status
-            }
+        // Принимаем status только как строку из белого списка статусов.
+        // Объекты игнорируем, чтобы исключить NoSQL-инъекцию операторов Mongo.
+        if (
+            typeof status === 'string' &&
+            (Object.values(StatusType) as string[]).includes(status)
+        ) {
+            filters.status = status
         }
 
         if (totalAmountFrom) {
